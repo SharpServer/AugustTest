@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="AntiMeme/AntiMeme.csproj" />
+  <Project Path="Sliced/Sliced.csproj" />
+</Solution>
