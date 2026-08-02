@@ -9,9 +9,9 @@ namespace AntiMeme.SpawnSets;
 
 public class FirstRolesSetSCPs : SpawnSet
 {
-    public override string Id { get; set; }
-    public override string Name { get; set; }
-    public override string Description { get; set; }
+    public override string Id { get; set; } = "FirstRoles.SCPs";
+    public override string Name { get; set; } = "First Roles (SCPs)";
+    public override string Description { get; set; } = "ラウンド開始時のSCP割り当て。";
 
     public override int AllowedPlayerCount
     {
@@ -46,9 +46,9 @@ public class FirstRolesSetSCPs : SpawnSet
 }
 public class FirstRolesSetNormals : SpawnSet
 {
-    public override string Id { get; set; }
-    public override string Name { get; set; }
-    public override string Description { get; set; }
+    public override string Id { get; set; } = "FirstRoles.Normals";
+    public override string Name { get; set; } = "First Roles (Normals)";
+    public override string Description { get; set; } = "ラウンド開始時の人間側割り当て。";
 
     public override IReadOnlyList<SpawnSetRoleDefinition> SpawnRoles { get; set; } =
     [

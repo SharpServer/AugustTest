@@ -28,25 +28,44 @@ public abstract class SpawnSet
 
     public abstract IReadOnlyList<SpawnSetRoleDefinition> SpawnRoles { get; set; }
 
+    /// <summary>
+    /// このSpawnSetの割り当て対象になりうるプレイヤーです。
+    /// 既定では「まだ役職が割り当てられていないプレイヤー」を返します。
+    ///
+    /// ラウンド開始時 (LabApiのRoundStarted) はバニラの役職割り当て
+    /// (PlayerRoles.RoleAssign.RoleAssigner) より前に発火するため、
+    /// その時点のプレイヤーはSpectatorではなくRoleTypeId.None (ロビー) である。
+    /// ラウンド中に呼ばれた場合はSpectatorが対象になる。
+    /// Overwatchは RoleTypeId.Overwatch なのでここには含まれない。
+    /// </summary>
     protected virtual List<Player> TargetPlayers()
     {
         return Player.ReadyList
-            .Where(player => player.Role is RoleTypeId.Spectator)
+            .Where(player => player.Role is RoleTypeId.None or RoleTypeId.Spectator)
             .Shuffled();
     }
 
     public void Spawn()
     {
-        var alreadyLocked = false;
-        if (Round.IsLocked)
-        {
-            alreadyLocked = true;
-        }
-        else
-        {
+        bool alreadyLocked = Round.IsLocked;
+
+        if (!alreadyLocked)
             Round.IsLocked = true;
+
+        // 途中でreturnしてもラウンドロックを必ず戻す。
+        try
+        {
+            SpawnInternal();
         }
-        
+        finally
+        {
+            if (!alreadyLocked)
+                Round.IsLocked = false;
+        }
+    }
+
+    private void SpawnInternal()
+    {
         if (AllowedPlayerCount < -1)
         {
             Logger.Error(
@@ -89,8 +108,6 @@ public abstract class SpawnSet
 
         SpawnRoutine(forcedRoles, processPlayers);
         SpawnRoutine(normalRoles, processPlayers);
-        
-        if (!alreadyLocked) Round.IsLocked = false;
     }
 
     private void SpawnRoutine(
