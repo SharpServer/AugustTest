@@ -52,8 +52,8 @@ public class FirstRolesSetNormals : SpawnSet
 
     public override IReadOnlyList<SpawnSetRoleDefinition> SpawnRoles { get; set; } =
     [
-        new(RoleTypeId.ClassD, null, 1, false),
-        new(RoleTypeId.Scientist, null, 1, false),
-        new(RoleTypeId.FacilityGuard, null, 1, false),
+        new(RoleTypeId.ClassD, null, 99, false),
+        new(RoleTypeId.Scientist, null, 99, false),
+        new(RoleTypeId.FacilityGuard, null, 99, false),
     ];
 }

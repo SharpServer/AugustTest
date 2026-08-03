@@ -1,6 +1,6 @@
 using System;
 
-namespace Sliced.API.Attributes;
+namespace Sliced.API.Features.Attributes;
 
 /// <summary>
 /// この属性を付けた <see cref="Features.EventHandlerBase"/> の派生クラスは、

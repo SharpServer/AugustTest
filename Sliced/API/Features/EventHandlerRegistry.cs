@@ -4,8 +4,8 @@ using System.Linq;
 using System.Reflection;
 using LabApi.Events.Handlers;
 using LabApi.Features.Console;
-using Sliced.API.Attributes;
 using Sliced.API.Enums;
+using Sliced.API.Features.Attributes;
 
 namespace Sliced.API.Features;
 

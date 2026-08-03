@@ -5,8 +5,8 @@ using LabApi.Events.CustomHandlers;
 using LabApi.Events.Handlers;
 using LabApi.Features.Console;
 using LabApi.Features.Wrappers;
-using Sliced.API.Attributes;
 using Sliced.API.Enums;
+using Sliced.API.Features.Attributes;
 using Sliced.API.Interfaces;
 
 namespace Sliced.API.Features;

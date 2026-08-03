@@ -69,6 +69,7 @@ public abstract class CustomRole : IPlayerOwn
         if (Player.Role == SpawnRoleType)
         {
             OnSpawned();
+            OnShowingHint();
             return true;
         }
         
@@ -96,4 +97,13 @@ public abstract class CustomRole : IPlayerOwn
     /// Override this for Spawn Initialization.
     /// </summary>
     protected virtual void OnSpawned() {}
+
+    /// <summary>
+    /// Timing of showing role information Hint to Owner player.
+    /// Override this if you want to original Hint.
+    /// </summary>
+    protected virtual void OnShowingHint()
+    {
+        Player.SendHint($"<size=24>{Name}\n{Description}</size>");
+    }
 }
