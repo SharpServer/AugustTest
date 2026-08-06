@@ -123,7 +123,8 @@
         <Reference Include="System.Xml"/>
     </ItemGroup>
 
-    <Target Name="CopyToLabApiPlugins" AfterTargets="Build">
+    <!-- SkipDeploy=true で配備をやめる (並行ビルドが 7778 を取り合うのを避ける)。 -->
+    <Target Name="CopyToLabApiPlugins" AfterTargets="Build" Condition="'$(SkipDeploy)' != 'true'">
         <PropertyGroup>
             <LabApiPluginsDir>$(APPDATA)\SCP Secret Laboratory\LabAPI\plugins\7778</LabApiPluginsDir>
         </PropertyGroup>

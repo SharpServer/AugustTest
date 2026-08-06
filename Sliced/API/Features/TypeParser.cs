@@ -1,15 +1,26 @@
 #nullable enable
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Sliced.API.Features.Attributes;
+
+using Logger = LabApi.Features.Console.Logger;
 
 namespace Sliced.API.Features;
 
 public static class TypeParser
 {
     /// <summary>
-    /// 文字列から、TBaseを継承している型を取得します。
+    /// 文字列から、TBase を継承している型を取得します。
     /// 型名・完全修飾名のどちらでも検索できます。
+    ///
+    /// 型名が複数の名前空間で衝突している場合は、**どれか 1 つを勝手に選ばず失敗させます**。
+    /// 黙って片方に解決すると、コマンドやマップデータの指す先が不定になるためです。
+    /// その場合は完全修飾名を渡してください。
+    ///
+    /// 現在の名前で見つからなかったときだけ、<see cref="LegacyNameAttribute"/> が
+    /// 名乗っている昔の綴りも探します。再構築前に作られたマップやセーブが指す先を拾うためです。
     /// </summary>
     public static bool TryParse<TBase>(
         string value,
@@ -25,20 +36,57 @@ public static class TypeParser
             ? StringComparison.OrdinalIgnoreCase
             : StringComparison.Ordinal;
 
-        result = AppDomain.CurrentDomain
+        List<Type> concrete = AppDomain.CurrentDomain
             .GetAssemblies()
             .SelectMany(GetLoadableTypes)
-            .FirstOrDefault(type =>
+            .Where(type =>
                 typeof(TBase).IsAssignableFrom(type) &&
                 type != typeof(TBase) &&
                 !type.IsAbstract &&
-                !type.IsInterface &&
-                (
-                    string.Equals(type.Name, value, comparison) ||
-                    string.Equals(type.FullName, value, comparison)
-                ));
+                !type.IsInterface)
+            .ToList();
 
-        return result is not null;
+        List<Type> candidates = concrete
+            .Where(type =>
+                string.Equals(type.Name, value, comparison) ||
+                string.Equals(type.FullName, value, comparison))
+            .ToList();
+
+        // 現在の名前が優先。昔の名前を先に見ると、改名後の型に旧名が奪われる。
+        if (candidates.Count == 0)
+        {
+            candidates = concrete
+                .Where(type => HasLegacyName(type, value, comparison))
+                .ToList();
+        }
+
+        if (candidates.Count == 1)
+        {
+            result = candidates[0];
+
+            return true;
+        }
+
+        if (candidates.Count == 0)
+            return false;
+
+        // 完全修飾名での一致が 1 つだけなら、それが指名されたものとみなす。
+        List<Type> exact = candidates
+            .Where(type => string.Equals(type.FullName, value, comparison))
+            .ToList();
+
+        if (exact.Count == 1)
+        {
+            result = exact[0];
+
+            return true;
+        }
+
+        Logger.Error(
+            $"[Sliced] '{value}' が複数の型に一致するため解決できません: " +
+            $"{string.Join(", ", candidates.Select(type => type.FullName))}");
+
+        return false;
     }
 
     /// <summary>
@@ -64,6 +112,40 @@ public static class TypeParser
         {
             return false;
         }
+    }
+
+    /// <summary>
+    /// TBase を継承している具象型をすべて返します。
+    /// 「宣言されているものを全部集める」用途 (チーム一覧・カタログ表示など) に使います。
+    /// 引数なしコンストラクターを持つ型だけが対象です。
+    /// </summary>
+    public static IReadOnlyList<Type> FindTypes<TBase>()
+    {
+        return AppDomain.CurrentDomain
+            .GetAssemblies()
+            .SelectMany(GetLoadableTypes)
+            .Where(type =>
+                typeof(TBase).IsAssignableFrom(type) &&
+                type != typeof(TBase) &&
+                !type.IsAbstract &&
+                !type.IsInterface &&
+                !type.IsGenericTypeDefinition &&
+                type.GetConstructor(Type.EmptyTypes) is not null)
+            .ToArray();
+    }
+
+    /// <summary>
+    /// この型が <paramref name="value"/> という名前を昔名乗っていたか。
+    /// </summary>
+    private static bool HasLegacyName(Type type, string value, StringComparison comparison)
+    {
+        foreach (LegacyNameAttribute legacy in type.GetCustomAttributes<LegacyNameAttribute>(inherit: false))
+        {
+            if (string.Equals(legacy.Name, value, comparison))
+                return true;
+        }
+
+        return false;
     }
 
     private static Type[] GetLoadableTypes(Assembly assembly)

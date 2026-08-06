@@ -27,5 +27,10 @@ public class SlicedPlugin : Plugin
     public override void Disable()
     {
         EventHandlerRegistry.Shutdown();
+        GameMode.Shutdown();
+        CustomRole.Shutdown();
+        CustomItem.Shutdown();
+        PlayerScope.Shutdown();
+        RoundScope.Shutdown();
     }
 }

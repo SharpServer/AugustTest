@@ -31,8 +31,11 @@ public static class EventHandlerRegistry
     private static readonly List<Type> RoundTypes = new List<Type>();
     private static readonly List<EventHandlerBase> AutoHandlers = new List<EventHandlerBase>();
 
+    private static readonly List<Assembly> PendingAssemblies = new List<Assembly>();
+
     private static bool initialized;
     private static bool scanned;
+    private static bool pluginsEnabled;
 
     /// <summary>
     /// 自動登録によって生成され、現在生きているハンドラの一覧です。
@@ -69,7 +72,9 @@ public static class EventHandlerRegistry
         AutoHandlers.Clear();
         ManualTypes.Clear();
         RoundTypes.Clear();
+        PendingAssemblies.Clear();
         scanned = false;
+        pluginsEnabled = false;
     }
 
     /// <summary>
@@ -82,8 +87,86 @@ public static class EventHandlerRegistry
 
         scanned = true;
 
-        foreach (Type type in DiscoverTypes())
+        Classify(DiscoverTypes());
+
+        foreach (Assembly assembly in PendingAssemblies)
         {
+            Classify(GetHandlerTypes(assembly));
+        }
+
+        PendingAssemblies.Clear();
+
+        Logger.Debug($"[Sliced] 自動登録対象を検出しました: 常駐 {ManualTypes.Count} 件 / ラウンド {RoundTypes.Count} 件");
+    }
+
+    /// <summary>
+    /// 指定したアセンブリのハンドラを明示的に登録します。
+    ///
+    /// 通常は不要です。<see cref="ServerEvents.PluginsEnabled"/> 時点で
+    /// EXILED がロードするプラグインも AppDomain に載っているため、
+    /// <see cref="Scan"/> が拾います。
+    ///
+    /// ただしそれはローダーの実行順に依存しているので、EXILED プラグイン側から
+    /// 自分のアセンブリを名指しで登録できる経路も用意しています。
+    /// 二重に呼んでも同じ型が二度登録されることはありません。
+    /// </summary>
+    public static void RegisterAssembly(Assembly assembly)
+    {
+        if (assembly is null) return;
+
+        // Sliced より先に呼ばれた場合は覚えておき、Scan のときに一緒に処理する。
+        if (!scanned)
+        {
+            if (!PendingAssemblies.Contains(assembly))
+            {
+                PendingAssemblies.Add(assembly);
+            }
+
+            return;
+        }
+
+        int before = ManualTypes.Count + RoundTypes.Count;
+
+        Classify(GetHandlerTypes(assembly));
+
+        int added = ManualTypes.Count + RoundTypes.Count - before;
+
+        if (added == 0) return;
+
+        Logger.Debug($"[Sliced] {assembly.GetName().Name} から {added} 件を追加で検出しました。");
+
+        // 走査済みで、かつ常駐分を起こす段階を過ぎている場合だけこの場で起こす。
+        // ラウンド分は次の RoundStarted に任せる。
+        if (!pluginsEnabled) return;
+
+        SpawnManualTypes();
+    }
+
+    /// <summary>
+    /// 指定したアセンブリに属する自動登録対象と生成済みハンドラを取り除きます。
+    /// EXILED 側の利用プラグインだけを再読込しても、古い型と購読を残しません。
+    /// </summary>
+    public static void UnregisterAssembly(Assembly assembly)
+    {
+        if (assembly is null) return;
+
+        PendingAssemblies.RemoveAll(candidate => candidate == assembly);
+        ManualTypes.RemoveAll(type => type.Assembly == assembly);
+        RoundTypes.RemoveAll(type => type.Assembly == assembly);
+
+        EventHandlerBase.DisposeAssembly(assembly);
+        AutoHandlers.RemoveAll(handler => handler.GetType().Assembly == assembly);
+    }
+
+    /// <summary>
+    /// Lifetime を読んで振り分けます。既に登録済みの型は無視します。
+    /// </summary>
+    private static void Classify(IEnumerable<Type> types)
+    {
+        foreach (Type type in types)
+        {
+            if (ManualTypes.Contains(type) || RoundTypes.Contains(type)) continue;
+
             // Lifetime はインスタンスプロパティなので、判定用に一度だけ生成して読む。
             // ここでは Enable しないため、コンストラクタは軽く副作用のないものにしておくこと。
             if (!TryCreate(type, out EventHandlerBase probe)) continue;
@@ -91,24 +174,33 @@ public static class EventHandlerRegistry
             if (probe.Lifetime is HandlerLifetime.Round)
             {
                 RoundTypes.Add(type);
-                probe.Dispose();
             }
             else
             {
                 ManualTypes.Add(type);
-                probe.Dispose();
             }
-        }
 
-        Logger.Debug($"[Sliced] 自動登録対象を検出しました: 常駐 {ManualTypes.Count} 件 / ラウンド {RoundTypes.Count} 件");
+            probe.Dispose();
+        }
     }
 
     private static void OnPluginsEnabled()
     {
-        Scan();
+        pluginsEnabled = true;
 
+        Scan();
+        SpawnManualTypes();
+    }
+
+    /// <summary>
+    /// 常駐ハンドラのうち、まだ生きていないものを起こします。
+    /// </summary>
+    private static void SpawnManualTypes()
+    {
         foreach (Type type in ManualTypes)
         {
+            if (AutoHandlers.Any(handler => handler.GetType() == type)) continue;
+
             Spawn(type);
         }
     }
@@ -171,32 +263,37 @@ public static class EventHandlerRegistry
             if (assembly.IsDynamic) continue;
             if (assembly != self && !References(assembly, selfName)) continue;
 
-            Type[] types;
-
-            try
+            foreach (Type type in GetHandlerTypes(assembly))
             {
-                types = assembly.GetTypes();
-            }
-            catch (ReflectionTypeLoadException exception)
-            {
-                types = exception.Types.Where(type => type is not null).ToArray();
-                Logger.Warn($"[Sliced] {assembly.GetName().Name} の一部の型を読み込めませんでした。読めた型だけを対象にします。");
-            }
-            catch (Exception exception)
-            {
-                Logger.Error($"[Sliced] {assembly.GetName().Name} の走査に失敗しました: {exception}");
-
-                continue;
-            }
-
-            foreach (Type type in types)
-            {
-                if (IsAutoRegisterable(type))
-                {
-                    yield return type;
-                }
+                yield return type;
             }
         }
+    }
+
+    /// <summary>
+    /// 1 つのアセンブリから自動登録対象の型だけを取り出します。
+    /// </summary>
+    private static IEnumerable<Type> GetHandlerTypes(Assembly assembly)
+    {
+        Type[] types;
+
+        try
+        {
+            types = assembly.GetTypes();
+        }
+        catch (ReflectionTypeLoadException exception)
+        {
+            types = exception.Types.Where(type => type is not null).ToArray();
+            Logger.Warn($"[Sliced] {assembly.GetName().Name} の一部の型を読み込めませんでした。読めた型だけを対象にします。");
+        }
+        catch (Exception exception)
+        {
+            Logger.Error($"[Sliced] {assembly.GetName().Name} の走査に失敗しました: {exception}");
+
+            return [];
+        }
+
+        return types.Where(IsAutoRegisterable);
     }
 
     private static bool References(Assembly assembly, string name)

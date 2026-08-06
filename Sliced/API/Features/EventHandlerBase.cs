@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using LabApi.Events.Arguments.PlayerEvents;
 using LabApi.Events.CustomHandlers;
 using LabApi.Events.Handlers;
@@ -107,6 +108,21 @@ public abstract class EventHandlerBase : CustomEventsHandler, IDisposable
         foreach (EventHandlerBase handler in ActiveHandlers.ToArray())
         {
             handler.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// 指定したアセンブリが生成したハンドラだけを破棄します。
+    /// 利用側プラグインだけが無効化・再読込される場合に使います。
+    /// </summary>
+    public static void DisposeAssembly(Assembly assembly)
+    {
+        if (assembly is null) return;
+
+        foreach (EventHandlerBase handler in ActiveHandlers.ToArray())
+        {
+            if (handler.GetType().Assembly == assembly)
+                handler.Dispose();
         }
     }
 

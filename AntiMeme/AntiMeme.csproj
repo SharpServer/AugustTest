@@ -8,8 +8,14 @@
         <AssemblyName>AntiMeme</AssemblyName>
         <FileAlignment>512</FileAlignment>
         <LangVersion>latest</LangVersion>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
         <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+        <!--
+            nullable は無効のまま。EXILED / LabApi / ゲーム本体がすべて null 非注釈なので、
+            enable にしても効いてほしい場所には効かず、? と ! の装飾だけが増える。
+            必要なファイルだけ #nullable enable で opt-in する。
+        -->
         <!-- NuGet で解決できないアセンブリ(ゲーム本体・Unity・ProjectMER)の置き場。 -->
         <SlDependenciesDir>$(MSBuildThisFileDirectory)..\Dependencies\</SlDependenciesDir>
     </PropertyGroup>
@@ -39,10 +45,40 @@
         NuGet で解決するもの。
         ExMod.Exiled が Exiled.* / LabApi / Assembly-CSharp(Publicized) /
         CommandSystem.Core / NorthwoodLib / YamlDotNet をまとめて供給する。
+        System.* は音声・メディア層 (ffmpeg / yt-dlp / HTTP) が要求する net48 向けバックポート。
     -->
     <ItemGroup>
         <PackageReference Include="ExMod.Exiled" Version="9.14.2"/>
         <PackageReference Include="Lib.Harmony" Version="2.2.2"/>
+        <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.1"/>
+        <PackageReference Include="System.Buffers" Version="4.6.1"/>
+        <PackageReference Include="System.IO.Pipelines" Version="10.0.1"/>
+        <PackageReference Include="System.Memory" Version="4.6.3"/>
+        <PackageReference Include="System.Numerics.Vectors" Version="4.6.1"/>
+        <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.2"/>
+        <PackageReference Include="System.Text.Encodings.Web" Version="10.0.1"/>
+        <PackageReference Include="System.Text.Json" Version="10.0.1"/>
+        <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.6.3"/>
+        <PackageReference Include="System.ValueTuple" Version="4.6.1"/>
+    </ItemGroup>
+
+    <!--
+        SharpServer ファミリのアセンブリ。ProjectMER 以外は Dependencies\ に無いので
+        $(SL_References) (machine 環境変数 / SL_References リポジトリのミラー) から参照する。
+    -->
+    <ItemGroup>
+        <Reference Include="HintServiceMeow-Exiled">
+            <HintPath>$(SL_References)\HintServiceMeow-Exiled.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
+        <Reference Include="SNAPI">
+            <HintPath>$(SL_References)\SNAPI-HSM.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
+        <Reference Include="Snake">
+            <HintPath>$(SL_References)\Snake.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
     </ItemGroup>
 
     <!--
@@ -110,7 +146,8 @@
         </Reference>
         <!--
             UnityEngine.AudioModule 等の Unity アセンブリは netstandard 2.1 を参照するため、
-            net48 標準の netstandard 2.0 ファサードのままだと CS1705 になる。
+            net48 標準の netstandard 2.0 ファサードのままだと CS1705 になる
+            (AudioClip.SetData/GetData の Span オーバーロード解決時に発生)。
             サーバー実体と同じ Mono 版 netstandard 2.1 を明示参照して合わせる。
         -->
         <Reference Include="netstandard">
@@ -120,6 +157,10 @@
         <Reference Include="System"/>
         <Reference Include="System.Core"/>
         <Reference Include="System.Data"/>
+        <Reference Include="System.IO.Compression"/>
+        <Reference Include="System.Net"/>
+        <Reference Include="System.Net.Http"/>
+        <Reference Include="System.Numerics"/>
         <Reference Include="System.Xml"/>
     </ItemGroup>
 
@@ -127,13 +168,34 @@
         <ProjectReference Include="..\Sliced\Sliced.csproj"/>
     </ItemGroup>
 
-    <Target Name="CopyToLabApiPlugins" AfterTargets="Build">
+    <!--
+        AntiMeme は EXILED プラグインとしてロードされる (Sliced は LabAPI 側)。
+        HSM / SNAPI が EXILED プラグインであることと、既存の EXILED 配備フローに乗るため。
+        本番 7777 とは分離した 7778 で並走検証する。
+    -->
+    <!--
+        SkipDeploy=true で配備をやめる。並行ビルド (複数の作業コピーから同時に叩く場合) が
+        同じ 7778 フォルダを取り合って IO 例外になるのを避けるため。
+    -->
+    <Target Name="CopyToExiledPlugins" AfterTargets="Build" Condition="'$(SkipDeploy)' != 'true'">
         <PropertyGroup>
-            <LabApiPluginsDir>$(APPDATA)\SCP Secret Laboratory\LabAPI\plugins\7778</LabApiPluginsDir>
+            <ExiledPluginsDir>$(APPDATA)\EXILED\Plugins\7778</ExiledPluginsDir>
+            <ExiledDependenciesDir>$(APPDATA)\EXILED\Plugins\dependencies</ExiledDependenciesDir>
         </PropertyGroup>
-        <MakeDir Directories="$(LabApiPluginsDir)"/>
-        <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll" DestinationFolder="$(LabApiPluginsDir)"
-              SkipUnchangedFiles="false"/>
+        <ItemGroup>
+            <ExiledDependencyFiles Include="$(OutputPath)Microsoft.Bcl.AsyncInterfaces.dll" Condition="Exists('$(OutputPath)Microsoft.Bcl.AsyncInterfaces.dll')"/>
+            <ExiledDependencyFiles Include="$(OutputPath)System.Buffers.dll" Condition="Exists('$(OutputPath)System.Buffers.dll')"/>
+            <ExiledDependencyFiles Include="$(OutputPath)System.IO.Pipelines.dll" Condition="Exists('$(OutputPath)System.IO.Pipelines.dll')"/>
+            <ExiledDependencyFiles Include="$(OutputPath)System.Memory.dll" Condition="Exists('$(OutputPath)System.Memory.dll')"/>
+            <ExiledDependencyFiles Include="$(OutputPath)System.Numerics.Vectors.dll" Condition="Exists('$(OutputPath)System.Numerics.Vectors.dll')"/>
+            <ExiledDependencyFiles Include="$(OutputPath)System.Runtime.CompilerServices.Unsafe.dll" Condition="Exists('$(OutputPath)System.Runtime.CompilerServices.Unsafe.dll')"/>
+            <ExiledDependencyFiles Include="$(OutputPath)System.Text.Encodings.Web.dll" Condition="Exists('$(OutputPath)System.Text.Encodings.Web.dll')"/>
+            <ExiledDependencyFiles Include="$(OutputPath)System.Text.Json.dll" Condition="Exists('$(OutputPath)System.Text.Json.dll')"/>
+            <ExiledDependencyFiles Include="$(OutputPath)System.Threading.Tasks.Extensions.dll" Condition="Exists('$(OutputPath)System.Threading.Tasks.Extensions.dll')"/>
+        </ItemGroup>
+        <MakeDir Directories="$(ExiledPluginsDir);$(ExiledDependenciesDir)"/>
+        <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll" DestinationFolder="$(ExiledPluginsDir)" SkipUnchangedFiles="false"/>
+        <Copy SourceFiles="@(ExiledDependencyFiles)" DestinationFolder="$(ExiledDependenciesDir)" SkipUnchangedFiles="false"/>
     </Target>
 
 </Project>
