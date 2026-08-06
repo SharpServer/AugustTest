@@ -1,0 +1,251 @@
+# aaa.json (旧 EXILED ObjectPrefab 永続化) -> ProjectMER の object_prefab_markers 変換結果
+#
+# 使い方: 下のエントリを MapWorks の Maps\aaa.yml の object_prefab_markers: 配下へ追記する。
+# 既存の 12 マーカー (AuthDoor / HIDTurretObject / document x2 ほか) はそのまま残すこと。
+#
+# 座標の根拠: 旧 TrySpawnPrefab は worldPos = room.Position + room.Rotation * LocalPosition。
+# ProjectMER の非屋外ルームは room.Transform.TransformPoint(position) で同一なので、位置はそのまま移せる。
+#
+# 未解決: options のキー名は旧 Document/Trashbox のもの。新プレハブ実装時に確認すること。
+
+  b32ee439:
+    prefab_type: Document
+    tag: ''
+    max_rooms: 1
+    auto_destroy_enabled: false
+    auto_destroy_time: -1
+    options:
+      DocumentType: ScientistSamuels
+      ShowModel: True
+    position: (7.896, 0.820, -2.203)
+    rotation: (0.000, 201.204, 0.000)
+    scale: (1.000, 1.000, 1.000)
+    room: LczCafe
+    index: 0
+  3c9a6683:
+    prefab_type: Document
+    tag: ''
+    max_rooms: 1
+    auto_destroy_enabled: false
+    auto_destroy_time: -1
+    options:
+      DocumentType: Scp096
+      ShowModel: True
+    position: (-4.179, 0.017, 1.269)
+    rotation: (0.000, 147.903, 0.000)
+    scale: (1.000, 1.000, 1.000)
+    room: Hcz096
+    index: 0
+  5048b5aa:
+    prefab_type: Document
+    tag: ''
+    max_rooms: 1
+    auto_destroy_enabled: false
+    auto_destroy_time: -1
+    options:
+      DocumentType: Cafeteria
+      ShowModel: True
+    position: (-4.109, 16.636, -2.296)
+    rotation: (0.000, 122.799, 0.000)
+    scale: (1.000, 1.000, 1.000)
+    room: EzCollapsedTunnel
+    index: 0
+  # !! 要実行時変換: Surface は ProjectMER では屋外扱いで position が絶対座標になる。
+  #    absolute = SurfaceRoom.Position + SurfaceRoom.Rotation * (下の position)
+  7ed27099:
+    prefab_type: Document
+    tag: ''
+    max_rooms: 1
+    auto_destroy_enabled: false
+    auto_destroy_time: -1
+    options:
+      DocumentType: Scp033
+      ShowModel: True
+    position: (-31.410, -49.002, -101.920)
+    rotation: (0.000, 120.104, 0.000)
+    scale: (1.000, 1.000, 1.000)
+    room: Surface
+    index: 0
+  2d4b6a7e:
+    prefab_type: Document
+    tag: ''
+    max_rooms: 1
+    auto_destroy_enabled: false
+    auto_destroy_time: -1
+    options:
+      DocumentType: OmegaWarhead
+      ShowModel: True
+    position: (2.148, -75.436, 3.218)
+    rotation: (0.000, 195.299, 0.000)
+    scale: (1.000, 1.000, 1.000)
+    room: HczStraightPipeRoom
+    index: 0
+  b9689f83:
+    prefab_type: Document
+    tag: ''
+    max_rooms: 1
+    auto_destroy_enabled: false
+    auto_destroy_time: -1
+    options:
+      DocumentType: DeltaWarhead
+      ShowModel: True
+    position: (5.034, 19.233, 3.125)
+    rotation: (0.000, 72.698, 0.000)
+    scale: (1.000, 1.000, 1.000)
+    room: HczServerRoom
+    index: 0
+  # !! 要実行時変換: Surface は ProjectMER では屋外扱いで position が絶対座標になる。
+  #    absolute = SurfaceRoom.Position + SurfaceRoom.Rotation * (下の position)
+  00c964cd:
+    prefab_type: Document
+    tag: ''
+    max_rooms: 1
+    auto_destroy_enabled: false
+    auto_destroy_time: -1
+    options:
+      DocumentType: Backrooms
+      ShowModel: True
+    position: (10.815, -72.231, -7.428)
+    rotation: (0.000, 23.698, 0.000)
+    scale: (1.000, 1.000, 1.000)
+    room: Surface
+    index: 0
+  03bd515a:
+    prefab_type: Trashbox
+    tag: ''
+    max_rooms: 1
+    auto_destroy_enabled: false
+    auto_destroy_time: -1
+    options: {}
+    position: (-1.585, 0.056, -1.356)
+    rotation: (0.000, 225.400, 0.000)
+    scale: (1.000, 1.000, 1.000)
+    room: EzCrossing
+    index: 0
+  # !! 要実行時変換: Surface は ProjectMER では屋外扱いで position が絶対座標になる。
+  #    absolute = SurfaceRoom.Position + SurfaceRoom.Rotation * (下の position)
+  e2f84056:
+    prefab_type: Document
+    tag: ''
+    max_rooms: 1
+    auto_destroy_enabled: false
+    auto_destroy_time: -1
+    options:
+      DocumentType: Overbeyond
+      ShowModel: True
+    position: (119.679, -39.379, -50.867)
+    rotation: (0.000, 0.000, 0.000)
+    scale: (1.000, 1.000, 1.000)
+    room: Surface
+    index: 0
+  db4e0259:
+    prefab_type: Trashbox
+    tag: ''
+    max_rooms: 1
+    auto_destroy_enabled: false
+    auto_destroy_time: -1
+    options: {}
+    position: (6.450, 2.900, -5.615)
+    rotation: (0.000, 89.904, 0.000)
+    scale: (1.000, 1.000, 1.000)
+    room: EzUpstairsPcs
+    index: 0
+  bcdd32c8:
+    prefab_type: Trashbox
+    tag: ''
+    max_rooms: 1
+    auto_destroy_enabled: false
+    auto_destroy_time: -1
+    options: {}
+    position: (-0.798, 0.027, -1.907)
+    rotation: (0.000, 269.003, 0.000)
+    scale: (1.000, 1.000, 1.000)
+    room: EzCheckpointHallwayA
+    index: 0
+  1230f616:
+    prefab_type: Trashbox
+    tag: ''
+    max_rooms: 1
+    auto_destroy_enabled: false
+    auto_destroy_time: -1
+    options: {}
+    position: (4.979, 0.062, 0.459)
+    rotation: (0.000, 55.092, 0.000)
+    scale: (1.000, 1.000, 1.000)
+    room: Hcz127
+    index: 0
+  3ad6c510:
+    prefab_type: Trashbox
+    tag: ''
+    max_rooms: 1
+    auto_destroy_enabled: false
+    auto_destroy_time: -1
+    options: {}
+    position: (5.824, -0.070, -5.169)
+    rotation: (0.000, 180.102, 0.000)
+    scale: (1.000, 1.000, 1.000)
+    room: LczGlassBox
+    index: 0
+  75ff4b6e:
+    prefab_type: Trashbox
+    tag: ''
+    max_rooms: 1
+    auto_destroy_enabled: false
+    auto_destroy_time: -1
+    options: {}
+    position: (-3.167, -0.008, -4.238)
+    rotation: (0.000, 288.702, 0.000)
+    scale: (1.000, 1.000, 1.000)
+    room: Lcz330
+    index: 0
+  50f4e3f2:
+    prefab_type: Trashbox
+    tag: ''
+    max_rooms: 1
+    auto_destroy_enabled: false
+    auto_destroy_time: -1
+    options: {}
+    position: (-4.608, 0.021, -3.911)
+    rotation: (0.000, 270.103, 0.000)
+    scale: (1.000, 1.000, 1.000)
+    room: LczToilets
+    index: 0
+  becd345e:
+    prefab_type: Trashbox
+    tag: ''
+    max_rooms: 1
+    auto_destroy_enabled: false
+    auto_destroy_time: -1
+    options: {}
+    position: (-6.606, 0.007, -3.900)
+    rotation: (0.000, 213.503, 0.000)
+    scale: (1.000, 1.000, 1.000)
+    room: LczCafe
+    index: 0
+  949423e4:
+    prefab_type: Trashbox
+    tag: ''
+    max_rooms: 1
+    auto_destroy_enabled: false
+    auto_destroy_time: -1
+    options: {}
+    position: (2.000, -0.107, -6.321)
+    rotation: (0.000, 178.896, 0.000)
+    scale: (1.000, 1.000, 1.000)
+    room: Lcz914
+    index: 0
+  # !! 要実行時変換: Surface は ProjectMER では屋外扱いで position が絶対座標になる。
+  #    absolute = SurfaceRoom.Position + SurfaceRoom.Rotation * (下の position)
+  e9981a16:
+    prefab_type: Trashbox
+    tag: ''
+    max_rooms: 1
+    auto_destroy_enabled: false
+    auto_destroy_time: -1
+    options: {}
+    position: (110.169, 6.004, -61.166)
+    rotation: (0.000, 270.196, 0.000)
+    scale: (1.000, 1.000, 1.000)
+    room: Surface
+    index: 0
+

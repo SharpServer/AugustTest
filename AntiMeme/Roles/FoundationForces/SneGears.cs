@@ -1,0 +1,57 @@
+using System;
+using System.Collections.Generic;
+using AntiMeme.Items.Armor;
+using AntiMeme.Items.Melee;
+using AntiMeme.Items.Nvg;
+using AntiMeme.Items.Utility;
+using AntiMeme.Items.Weapons;
+using AntiMeme.Teams.Factions;
+using CustomPlayerEffects;
+using LabApi.Events.Arguments.PlayerEvents;
+using LabApi.Events.Handlers;
+using LabApi.Features.Wrappers;
+using PlayerRoles;
+using PlayerRoles.PlayableScps.Scp079;
+using PlayerStatsSystem;
+using Sliced.API.Features;
+using Sliced.API.Structs;
+using UnityEngine;
+
+using ExiledScp173 = Exiled.Events.Handlers.Scp173;
+using BlinkingEventArgs = Exiled.Events.EventArgs.Scp173.BlinkingEventArgs;
+using AddingObserverEventArgs = Exiled.Events.EventArgs.Scp173.AddingObserverEventArgs;
+using Scp049AttackingEventArgs = LabApi.Events.Arguments.Scp049Events.Scp049AttackingEventArgs;
+
+namespace AntiMeme.Roles.FoundationForces;
+
+/// <summary>See No Evil の対圧兵です。</summary>
+public class SneGears : FoundationRole
+{
+    public override string Name => "シー・ノー・イービル 対圧兵";
+
+    /// <inheritdoc/>
+    public override string HudLabel => "<color=#FF1493>MTF Eta-10: Gears</color>";
+    public override string Description => "気狂いどもに一撃を与えろ！";
+    public override RoleTypeId BaseRole => RoleTypeId.NtfSergeant;
+    public override float? MaxHealth => 125f;
+    public override string CustomInfo => "<color=#FF1493>See No Evil Gears</color>";
+    public override IReadOnlyList<ItemType> Items =>
+    [
+        ItemType.GunE11SR,
+        ItemType.KeycardMTFOperative,
+        ItemType.Medkit,
+        ItemType.Radio,
+        ItemType.ArmorHeavy,
+    ];
+    public override IReadOnlyList<Type> CustomItems => [typeof(SerumC), typeof(AntiMemeGoggle)];
+    public override IReadOnlyDictionary<ItemType, ushort> Ammo => new Dictionary<ItemType, ushort>
+    {
+        [ItemType.Ammo556x45] = 140,
+    };
+
+    protected override void OnSpawned() => Hook(
+        () => PlayerEvents.Hurting += OnHurting,
+        () => PlayerEvents.Hurting -= OnHurting);
+
+    private void OnHurting(PlayerHurtingEventArgs ev) => SneDamageRules.ReduceFifthistDamage(ev, this);
+}
